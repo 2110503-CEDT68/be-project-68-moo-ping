@@ -32,6 +32,16 @@ const hotelSchema = new mongoose.Schema({
         type: String,
         required: [true, 'Please add the region']
     }, 
+    rating: {
+        type: Number,
+        default: 0,
+        min: 0,
+        max: 5
+    }, 
+    ratingCount: {
+        type: Number,
+        default: 0
+    }
 }, {
     toJSON: { virtuals: true },
     toObject: { virtuals: true }

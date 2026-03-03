@@ -130,7 +130,7 @@ exports.addAppointment = async (req, res, next) => {
 
         return res.status(200).json({
             success: true,
-            message: appointment
+            data: appointment
         })
     } catch (err) {
         return res.status(400).json({

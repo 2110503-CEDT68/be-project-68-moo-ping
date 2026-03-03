@@ -22,6 +22,14 @@ const AppointmentSchema = new mongoose.Schema({
     createdAt: {
         type: Date,
         default: Date.now
+    },
+    rating: {
+        type: Number,
+        min: 1,
+        max: 5
+    },
+    comment: {
+        type: String
     }
 });
 

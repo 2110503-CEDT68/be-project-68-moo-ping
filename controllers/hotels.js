@@ -1,4 +1,28 @@
 const Hotel = require("../models/Hotel");
+const Appointment = require("../models/Appoinment");
+
+const calRating = async (userId, hotelId) => {
+
+    const current = new Date();
+    const stats = await Appointment.find({
+        hotel: hotelId,
+        user: userId,
+        checkoutDate: {
+            $lt: current
+        },
+        rating: { $exists: true }
+    })
+
+    let count = stats.length;
+    let ratingSum = stats.reduce((acc, curr) => {
+        return acc + curr.rating;
+    }, 0);
+
+    await Hotel.findByIdAndUpdate(hotelId, {
+        rating: ratingSum/count,
+        ratingCount: count
+    });
+}
 
 // @desc    Get all hotels
 // @route   GET /api/v1/hotels
@@ -121,3 +145,77 @@ exports.deleteHotel = async (req, res, next) => {
         res.status(400).json({ success: false, error: err.message });
     }
 };
+
+//@desc     Add rating score
+//@route    POST /api/v1/hotels/:id/rating
+//@access   Public
+exports.addRating = async (req, res, next) => {
+    try {
+        const { rating, comment } = req.body;
+        const hotelId = req.params.id;
+        const userId = req.user.id;
+
+        const hotel = await Hotel.findById(hotelId);
+        
+        if(!hotel) {
+            return res.status(400).json({ success: false, message: `Hotel not found with id of ${hotelId}`});
+        }
+        if(req.user.role === "admin") {
+            await Hotel.findByIdAndUpdate(hotelId, req.body);
+            return res.status(200).json({
+                success: true,
+                data: hotel
+        })
+
+        }
+
+        if(!rating || rating < 1 || rating > 5) {
+            return res.status(400).json({
+                success: false,
+                message: "Rating must be between 1 and 5"
+            })
+        }
+
+        const current = new Date();
+
+        // Finding User's Appointments
+        const appointment = await Appointment.findOne({
+            user: userId,
+            hotel: hotelId,
+            checkoutDate: {
+                $lt: current
+            },
+            rating: {$exists: false}
+        }).sort({ checkoutDate: -1});
+        // For recalculate rating score
+        calRating(userId, hotelId);
+
+        // Check that the appointment already happened
+        if (!appointment) {
+            return res.status(400).json({
+                success: false,
+                message: "No completed appointment found for this hotel"
+            })
+        }
+
+        appointment.rating = rating;
+        appointment.comment = comment;
+        await appointment.save();
+        
+        const newCount = hotel.ratingCount + 1;
+        const newAverage = (hotel.rating * hotel.ratingCount + rating) / newCount;
+
+        hotel.ratingCount = newCount;
+        hotel.rating = newAverage;
+        await hotel.save();
+
+        res.status(200).json({
+            success: true,
+            data: hotel
+        })
+    }
+    catch (err) {
+        console.log(err);
+        res.status(400).json({ success: false, error: err.message });
+    }
+}
