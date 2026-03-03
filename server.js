@@ -5,6 +5,7 @@ const cookieParser = require('cookie-parser');
 
 const hotels = require("./routes/hotels");
 const users = require("./routes/auth");
+const appt = require("./routes/appointments");
 
 // Load env vars
 dotenv.config({ path: './config/config.env' });
@@ -24,6 +25,7 @@ app.use(cookieParser());
 // Route files
 app.use("/api/v1/hotels", hotels);
 app.use("/api/v1/auth", users);
+app.use("/api/v1/appointments", appt);
 
 
 const PORT = process.env.PORT || 5050;
